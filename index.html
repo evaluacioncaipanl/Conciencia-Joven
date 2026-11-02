@@ -193,8 +193,8 @@ button{font-family:var(--f)}
    Fuentes: LEEME v1.1 · Clave de calificación H y M · Guion H v1.2 · Guion M v1.3 · Final y cortinas v1.2
    ===================================================================== */
 const CONFIG = {
-  APP_VERSION: '2.1',
-  // Google Sheets vía Apps Script: pega aquí la URL /exec del script apps_script_conciencia_joven_v2_1.gs
+  APP_VERSION: '2.2',
+  // Google Sheets vía Apps Script: URL /exec del script apps_script_conciencia_joven_v2_2.gs
   // Mientras esté vacío, las partidas se guardan solo en el dispositivo (CSV desde el panel del facilitador).
   SHEETS_URL: 'https://script.google.com/macros/s/AKfycbytPsOhd2pdFJFB4F7wHHS2m6QkrNrn2CC3adsnkTbsl3JGf3uINRx5xwbGXXMLcvBV/exec',
   SHEETS_TOKEN: 'cj-2026-x7f2m9',
@@ -858,6 +858,7 @@ let S = null, SC = SC_H;
 let mode = 'boot', bgFlip = false, sprEls = [], typeTimer = null, curLine = null, stepRes = null;
 const SAVE_KEY = 'cj21_en_curso';
 function isPrueba(cod) { return norm(cod) === 'prueba'; }
+function normCod(c) { return String(c || '').trim().toUpperCase().replace(/\s+/g, ''); }
 function newGame(ver, codigo, apodo, edad) {
   const ig = norm(apodo).replace(/[^a-z0-9_.]/g, '') || 'yo';
   S = {id: uid(), ver, codigo, apodo, ig, edad, t0: Date.now(), inicio: new Date().toISOString(), next: 0, n: {}, t: {}, policia: null, tPol: null};
@@ -1144,22 +1145,29 @@ const Store = {
     const r = await fetch(CONFIG.SHEETS_URL, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify({token: CONFIG.SHEETS_TOKEN, cols: COLS, record: rec})});
     if (!r.ok) return false;
-    try { const j = await r.json(); return !!j.ok; } catch (e) { return false; }
+    try { const j = await r.json(); if (j.ok) return true; if (/^codigo_/.test(j.error || '')) return 'rechazo:' + j.error; return false; } catch (e) { return false; }
   },
   async sync() {
     if (!CONFIG.SHEETS_URL) return;
-    const arr = this.load(); let pend = 0;
-    for (const it of arr) { if (it.synced) continue; try { it.synced = await this.send(it.rec); } catch (e) { it.synced = false; } if (!it.synced) pend++; }
-    this.persist(arr); this.setState(pend ? 'pending' : 'ok');
+    const arr = this.load(); let pend = 0, rech = false;
+    for (const it of arr) {
+      if (it.synced || it.rechazo) continue;
+      let res = false; try { res = await this.send(it.rec); } catch (e) { res = false; }
+      if (res === true) it.synced = true;
+      else if (typeof res === 'string') { it.rechazo = res.slice(8); if (it === arr[arr.length - 1]) rech = true; }
+      else pend++;
+    }
+    this.persist(arr); this.setState(rech ? 'rejected' : pend ? 'pending' : 'ok');
   },
   setState(st) {
     this.lastState = st;
-    const map = {ok: ['ok', '✔ GUARDADO'], pending: ['warn', '⚠ SIN CONEXIÓN · SE ENVIARÁ DESPUÉS'], local: ['', 'GUARDADO EN ESTE DISPOSITIVO'], saving: ['', 'GUARDANDO…']};
+    const map = {ok: ['ok', '✔ GUARDADO'], pending: ['warn', '⚠ SIN CONEXIÓN · SE ENVIARÁ DESPUÉS'], local: ['', 'GUARDADO EN ESTE DISPOSITIVO'], saving: ['', 'GUARDANDO…'], rejected: ['warn', '⚠ CÓDIGO NO REGISTRADO · AVISA AL FACILITADOR']};
     const [c, t] = map[st] || map.saving; const el = $('#saveinfo'); el.className = c; el.textContent = t;
   },
   toCSV() {
     const esc = v => { v = v == null ? '' : String(v); return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    return [COLS.join(',')].concat(this.load().map(x => COLS.map(c => esc(x.rec[c])).join(','))).join('\n');
+    const est = x => x.synced ? 'enviada' : x.rechazo ? 'rechazada: ' + x.rechazo : 'pendiente';
+    return [COLS.concat('estado_envio').join(',')].concat(this.load().map(x => COLS.map(c => esc(x.rec[c])).concat(esc(est(x))).join(','))).join('\n');
   }
 };
 addEventListener('online', () => Store.sync());
@@ -1169,12 +1177,13 @@ addEventListener('online', () => Store.sync());
   const now = Date.now(); taps = taps.filter(t => now - t < 3500); taps.push(now);
   if (taps.length >= 5) { taps = []; openAdmin(); } }); })();
 function openAdmin() {
-  const a = $('#admin'); const arr = Store.load(); const pend = arr.filter(x => !x.synced).length;
+  const a = $('#admin'); const arr = Store.load(); const pend = arr.filter(x => !x.synced && !x.rechazo).length; const rech = arr.filter(x => x.rechazo).length;
   a.innerHTML = '';
   const h = document.createElement('h2'); h.textContent = 'PANEL DEL FACILITADOR'; a.appendChild(h);
   const p = t => { const e = document.createElement('p'); e.textContent = t; a.appendChild(e); };
   p(`Versión del juego: ${CONFIG.APP_VERSION}`);
-  p(`Partidas en este dispositivo: ${arr.length} (pruebas: ${arr.filter(x => x.rec.prueba === 'Sí').length}) · pendientes de enviar: ${pend}`);
+  p(`Partidas en este dispositivo: ${arr.length} (pruebas: ${arr.filter(x => x.rec.prueba === 'Sí').length}) · pendientes de enviar: ${pend} · rechazadas por código: ${rech}`);
+  if (rech) p('Las rechazadas no se guardaron en la base porque su código no existe o ya se había usado. Siguen en este dispositivo: descárgalas en el CSV (columna estado_envio).');
   p(`Destino de datos: ${CONFIG.SHEETS_URL ? 'Google Sheets' : 'solo este dispositivo (falta la URL del Apps Script)'}`);
   const btn = (t, f, c) => { const b = document.createElement('button'); b.textContent = t; if (c) b.className = c; b.onclick = f; a.appendChild(b); };
   btn('IR AL MENÚ', () => { a.classList.remove('show'); toMenu(); }, 'main');
@@ -1247,10 +1256,31 @@ async function toSelect() {
   if (mode === 'busy') return; mode = 'busy';
   await fade(true); resetSel(); showScreen('s-sel'); await fade(false); mode = 'idle';
 }
+// Revisa en la base si el código existe y no se ha usado. Sin internet, deja jugar (se valida al enviar).
+async function checkCodigo(cod) {
+  if (cod === 'PRUEBA' || !CONFIG.SHEETS_URL) return {valido: true};
+  try {
+    const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 7000);
+    const r = await fetch(CONFIG.SHEETS_URL + '?codigo=' + encodeURIComponent(cod), {signal: ctl.signal});
+    clearTimeout(to);
+    const j = await r.json();
+    return j && j.ok ? j : {valido: true, sinRed: true};
+  } catch (e) { return {valido: true, sinRed: true}; }
+}
 async function startSel() {
   if (mode === 'busy') return;
   document.activeElement && document.activeElement.blur();
-  newGame(selVer, $('#fCod').value.trim(), apodoVal(), selAge);
+  const cod = normCod($('#fCod').value); $('#fCod').value = cod;
+  mode = 'busy'; $('#btnStart').style.display = 'none'; $('#selhint').textContent = 'REVISANDO CÓDIGO…';
+  const chk = await checkCodigo(cod);
+  mode = 'idle';
+  if (chk.valido === false) {
+    refreshSel();
+    $('#btnStart').style.display = 'none';
+    $('#selhint').textContent = chk.motivo === 'usado' ? 'ESTE CÓDIGO YA SE USÓ' : 'CÓDIGO NO VÁLIDO';
+    return;
+  }
+  newGame(selVer, cod, apodoVal(), selAge);
   mode = 'busy'; await fade(true); showScreen('s-ins'); await fade(false); mode = 'idle';
 }
 async function startGame() {
