@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Cuestionario de Situaciones Cotidianas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: una sola columna de lectura (máx. 680px), una pregunta por pantalla, botones grandes para tablet. */
+:root{
+  --bg:#F4F3F1; --surface:#FFFFFF; --ink:#22201D; --muted:#655F58; --line:#DEDAD4;
+  --accent:#F39A4A; --accent-ink:#B4521A; --accent-soft:#FDE9D7; --on-accent:#2A1404; --warn:#B3261E; --warn-soft:#F8E1DE; --ok:#2C7A3F;
+  --display:"Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", Verdana, system-ui, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#171513; --surface:#211E1B; --ink:#EFEBE6; --muted:#ABA39A; --line:#3A352F;
+  --accent:#F5A25A; --accent-ink:#F5A25A; --accent-soft:#3B2414; --on-accent:#2A1404; --warn:#F2958C; --warn-soft:#3A1F1C; --ok:#7FD39A; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#171513; --surface:#211E1B; --ink:#EFEBE6; --muted:#ABA39A; --line:#3A352F;
+  --accent:#F5A25A; --accent-ink:#F5A25A; --accent-soft:#3B2414; --on-accent:#2A1404; --warn:#F2958C; --warn-soft:#3A1F1C; --ok:#7FD39A; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-top:20px}
+h1,h2{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(28px,5vw,38px);font-weight:800}
+h2{font-size:clamp(22px,4vw,28px);font-weight:600}
+p{margin:0}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.proto{display:flex;gap:10px;align-items:flex-start;background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:15px}
+.proto b{color:var(--warn)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:16px}
+label{font-weight:700;font-size:16px;display:block;margin-bottom:6px}
+.hint{font-size:14px;color:var(--muted)}
+input[type=text]{width:100%;font:inherit;font-size:20px;padding:12px 14px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+input[type=text]:focus{outline:none;border-color:var(--accent)}
+.code-input{font-family:var(--mono)!important;letter-spacing:.06em;text-transform:uppercase}
+.err{color:var(--warn);font-size:15px;font-weight:700}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:700;font-size:18px;border-radius:12px;padding:14px 22px;border:2px solid transparent;cursor:pointer;min-height:56px}
+.btn:focus-visible,.opt:focus-visible,.chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn-primary{background:var(--accent);color:var(--on-accent)}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--accent-ink);border-color:var(--line)}
+.btn-warn{background:transparent;color:var(--warn);border-color:var(--warn)}
+.btn-block{width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font:inherit;font-weight:700;font-size:18px;min-width:64px;min-height:52px;padding:10px 16px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.who{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.who .chip{min-height:84px;font-size:22px;font-family:var(--display)}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;display:flex;flex-direction:column;gap:8px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.bar-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
+.track{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.fill{height:100%;background:var(--accent);border-radius:99px;transition:width .25s ease}
+.qnum{font-family:var(--display);font-weight:800;font-size:20px;color:var(--accent-ink)}
+.qtext{font-size:clamp(21px,3.4vw,25px);line-height:1.4;font-weight:700}
+.part{font-size:14px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.opts{display:flex;flex-direction:column;gap:12px}
+.opt{display:flex;gap:14px;align-items:flex-start;text-align:left;font:inherit;font-size:19px;line-height:1.4;padding:16px 18px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:64px}
+.opt .l{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;border:2px solid var(--line);color:var(--muted)}
+.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt[aria-checked="true"] .l{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.yn{flex-direction:row;flex-wrap:wrap}
+.yn .opt{flex:1 1 140px;justify-content:center;font-weight:700;font-size:21px}
+.nav{display:flex;justify-content:space-between;gap:12px}
+.nav .btn-primary{flex:1}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.step{border-top:3px solid var(--accent);padding-top:10px;font-size:15px;color:var(--muted)}
+.step b{display:block;color:var(--ink);font-size:16px}
+@media (max-width:560px){.steps{grid-template-columns:1fr}}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:700;background:var(--warn-soft);color:var(--warn)}
+textarea{width:100%;min-height:110px;font-family:var(--mono);font-size:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px}
+.thanks{text-align:center;align-items:center;padding-block:40px}
+.thanks h1{font-size:clamp(32px,6vw,46px)}
+.linkish{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;padding:6px}
+.foot{display:flex;justify-content:center}
+@media (prefers-reduced-motion:reduce){.fill{transition:none}}
+.pill.ok{background:#E3F1E6;color:var(--ok)} .pill.wait{background:var(--accent-soft);color:var(--accent-ink)} .pill.bad{background:var(--warn-soft);color:var(--warn)}
+.okbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:15px;color:var(--ok);font-weight:700}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .pill.ok{background:#1D3324} }
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} img{max-width:100%} [hidden]{display:none!important}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ============ CONTENIDO (tomado de los cuestionarios en papel) ============ */
+const YN=["Sí","No"];
+const WORK=["No","Sí, menos de 20 horas a la semana","Sí, 20 horas o más a la semana"];
+const INSTR={
+ H:"A continuación hay situaciones que les pueden pasar a muchos jóvenes. Lee cada una y toca la opción que más se parece a lo que tú harías, no la que crees que se espera. No es un examen y no hay calificación. Toca solo una opción por pregunta.",
+ M:"Primero hay unas preguntas sobre ti; toca la respuesta que sea cierta. Después hay situaciones que les pueden pasar a muchas jóvenes: lee cada una y toca la opción que más se parece a lo que tú harías, no la que crees que se espera. No es un examen y no hay calificación. Toca solo una opción por pregunta."
+};
+const CTX={
+ H:[["Actualmente voy a la escuela.",YN],["Después de la escuela, normalmente hay un adulto en mi casa o alguien que sabe dónde estoy.",YN],["Trabajo en algo por lo que me pagan.",WORK],["En el último mes he tomado alcohol o usado alguna droga.",YN],["En mi casa hay peleas fuertes (gritos o golpes) seguido.",YN],["Tengo algún adulto, en mi casa o fuera de ella, con quien puedo hablar si tengo un problema.",YN]],
+ M:[["Actualmente voy a la escuela.",YN],["Después de la escuela, normalmente hay un adulto en mi casa o alguien que sabe dónde estoy.",YN],["Trabajo en algo por lo que me pagan.",WORK],["En mi casa, yo cuido a mis hermanos o hago la mayor parte del quehacer.",YN],["En el último mes he tomado alcohol o usado alguna droga.",YN],["En mi casa hay peleas fuertes (gritos o golpes) seguido.",YN],["Tengo algún adulto, en mi casa o fuera de ella, con quien puedo hablar si tengo un problema.",YN]]
+};
+const SC={
+H:[
+["Estoy llegando a la escuela y un compañero me propone que nos saltemos las clases. Ese día entregan calificaciones.",["Entro a las primeras clases y luego me salgo.","Entro y lo convenzo de que entre también.","Entro a clases.","Me voy con él y no entro."]],
+["Tengo la tarde libre. En el centro comunitario abrieron un taller gratuito, y mis amigos están reunidos en la esquina.",["Paso un rato con los de la esquina y después voy al taller.","Voy al taller.","Me quedo en la esquina.","Voy al taller e invito a un amigo."]],
+["Alguien me empuja delante de varias personas y me reta a pelear.",["Le digo que lo arreglamos después, para no quedar mal.","Le digo que no vale la pena y me quedo ahí.","Me retiro sin contestar, aunque digan que tuve miedo.","Acepto pelear."]],
+["Llego tarde a casa y mi mamá me regaña fuerte delante de mi hermano menor.",["Le respondo de mala manera, pero me quedo en casa.","No respondo y me encierro en mi cuarto.","Le grito y me salgo a la calle.","Espero a que los dos estemos más tranquilos y hablo con ella."]],
+["Un familiar me invita a jugar futbol y, a la misma hora, un amigo me invita a andar por ahí sin un plan.",["Me voy con el conocido.","Voy con mi familiar.","Voy un rato con mi familiar y después alcanzo al conocido.","Le digo que no al conocido y me quedo en casa."]],
+["Estoy en una reunión y un amigo me ofrece marihuana.",["Le digo que no, pero me quedo mientras los demás fuman.","Le pregunto qué tan buena es y le digo que tal vez otro día.","Acepto.","Le digo que no y me voy."]],
+["Mi mamá me da dinero para pagar un recibo. En la tienda veo tarjetas de regalo para juegos y aplicaciones y botanas.",["Pago el recibo y le devuelvo el cambio a mi mamá.","Compro una tarjeta pequeña, pago el recibo con lo que queda y luego completo.","Pago el recibo y después veo qué puedo comprar con lo que sobra.","Uso el dinero en lo que quiero y después lo repongo."]],
+["En un juego en línea, un desconocido me regala artículos del juego y me pide mis redes sociales para platicar.",["Acepto los regalos y le digo que después le paso mis redes.","Le paso mis redes y seguimos platicando.","No le respondo.","Rechazo los regalos y lo bloqueo."]],
+["En un negocio de chatarra compran cables y piezas de autos sin preguntar de dónde vienen. Un amigo sabe dónde conseguirlos y me invita.",["Le pregunto cuánto pagan, solo para saber.","Le digo que no y me voy de ahí.","Acepto ir con él para ganar dinero.","Le digo que no me interesa."]],
+["Es fin de semana por la noche. Mi mamá está trabajando y estoy solo en casa. Me invitan a salir.",["Me quedo en casa.","Salgo sin avisar y regreso a la hora que quiero.","Salgo un rato sin avisar y regreso antes de que llegue.","Le pido permiso a mi mamá y salgo solo si me lo da."]],
+["Mis amigos van a ir a una fiesta en otra colonia sin estar invitados. Si no voy, se van a burlar de mí en el chat del grupo.",["No voy, aunque se burlen.","Les digo que sí voy para que no se burlen, pero no llego.","No voy y me quedo con un amigo que tampoco quiere ir.","Voy con ellos."]],
+["En la calle hay una pelea entre dos personas. Se junta gente y muchos graban con el celular.",["Grabo y animo la pelea.","Busco a un adulto para que los separe.","Me quedo a ver, sin grabar.","Sigo mi camino."]],
+["Quiero ganar dinero para ayudar en casa o comprar mis cosas. Me ofrecen varios trabajos.",["Acepto uno por las tardes, después de la escuela (repartir, lavar autos o ayudar en un negocio familiar).","Acepto uno de tiempo completo y dejo la escuela.","Acepto cuidar material de construcción de noche, solo, con pago en efectivo.","No acepto ninguno y sigo estudiando."]],
+["Voy perdiendo en un videojuego y se corta el internet. En ese momento, mi hermano menor me pide ayuda con su tarea.",["Aviento o rompo algo, o me desquito con él.","Salgo un momento a calmarme y después lo ayudo.","Le respondo de mala manera.","Le digo que ahora no y me quedo en mi cuarto."]],
+["Un adulto que está afuera de un bar me invita a entrar con él y me dice que nadie me va a pedir identificación.",["Le digo que no, pero me quedo platicando afuera del bar.","Entro y tomo con él.","Entro solo a ver, sin tomar.","Le digo que no y me voy a casa."]],
+["En redes sociales me ofrecen un trabajo fácil que paga mucho dinero a la semana.",["Lo bloqueo y se lo cuento a alguien de confianza.","Pregunto de qué se trata, sin dar mis datos.","Lo ignoro.","Respondo y mando mis datos."]],
+["Mi mamá nota que algo me pasa y me dice que puedo contarle cualquier cosa.",["Le digo que ahora no, que después le platico.","Le digo que no se meta y me salgo.","Le cuento, aunque sea una parte.","Le digo que no es nada y cambio el tema."]],
+["A un amigo le robaron algo. Mis amigos quieren ir a golpear al que lo hizo.",["No voy y propongo otra solución, como hablar con él o avisarle a alguien.","Voy solo a ver, sin meterme.","Voy y participo en la pelea.","No voy y pongo un pretexto."]],
+["Un amigo me lleva a convivir con unos conocidos suyos que venden droga, solo para pasar el rato.",["Me quedo un rato, pero no regreso.","Me voy con un pretexto.","Me voy con un pretexto y le digo a mi amigo que no quiero juntarme con ellos.","Me quedo y me hago amigo de ellos."]],
+["Un prefecto revisa solo mi mochila, delante de todos, para avergonzarme.",["Dejo que la revise y le pregunto con calma por qué solo a mí.","La abro de mala gana y me burlo de él delante de todos.","Lo enfrento o me salgo de la escuela.","Dejo que la revise y después me quejo con la orientadora."]],
+["Unas personas me piden que vigile la calle y les avise si pasa la policía.",["Les digo que tal vez después, para no quedar mal.","Les digo que no, aunque se burlen, y sigo pasando por ahí.","Les digo que no y dejo de pasar por ese lugar.","Acepto, solo por esta vez."]],
+["Un amigo más grande siempre me invita de comer. Un día se mete en un problema y me pide que, si alguien pregunta, diga que estuve con él toda la tarde. Me dice: “Después de todo lo que he hecho por ti…”.",["Me niego y le cuento a alguien de confianza lo que me está pidiendo.","No le digo que no, le doy largas y sigo aceptándole cosas.","Le digo que sí, porque siento que le debo.","Le digo que no y dejo de aceptarle cosas."]],
+["Es de noche. Se escuchan disparos a unas cuadras y varios vecinos siguen afuera.",["Me quedo afuera o voy a ver.","Entro a mi casa y les digo a los demás que también entren.","Entro a mi casa.","Me meto a mi casa y me asomo por la ventana para ver qué pasa."]],
+["Unos vecinos atrapan a una persona que estaba robando y la están golpeando. Me dicen que les ayude.",["No participo y me retiro.","Participo en los golpes.","No participo y llamo a alguien que pueda detenerlos.","No le pego, pero me quedo viendo porque creo que se lo merece."]],
+["Me invitan a una reunión tranquila. Al llegar, me ofrecen cerveza y cigarros.",["No acepto, pero me retiro de la reunión.","No acepto y lo sostengo aunque insistan.","Acepto, porque todos lo hacen.","Tomo la cerveza o el cigarro, pero no lo consumo; solo para no desentonar."]],
+["Alguien se burla de mí en el chat del grupo porque no fui a una reunión la semana pasada.",["Respondo con insultos en ese momento o lo voy a buscar.","No respondo nada.","Respondo con una indirecta o un sticker de burla.","Espero a calmarme y después lo hablo en persona."]],
+["Dos personas en motocicleta me ofrecen dinero por entregar un paquete en una dirección.",["Pregunto qué contiene el paquete y a dónde va, antes de decidir.","Les digo claramente que no y me voy.","Acepto el dinero y entrego el paquete.","Pongo un pretexto y me voy."]],
+["En mi casa los adultos están discutiendo a gritos por dinero.",["Me salgo de noche con mis amigos.","Me encierro en mi cuarto con audífonos.","Me voy a casa de un familiar de confianza y aviso.","Salgo un rato a la banqueta y regreso."]],
+["Mis amigos me retan a provocar a unos policías con señas e insultos, y a correr para que no me alcancen.",["No lo hago y les digo a los demás que tampoco lo hagan.","Acepto el reto.","No lo hago, aunque digan que tengo miedo.","Voy con ellos, pero me quedo atrás a ver."]],
+["Me ofrecen cristal (metanfetamina).",["Lo pruebo solo una vez.","Lo rechazo y me alejo de quien me lo ofrece.","Lo rechazo, pero me quedo con el grupo.","Digo que tal vez otro día."]]
+],
+M:[
+["Estoy llegando a la escuela y un amigo me propone que nos saltemos las clases. Ese día entregan calificaciones.",["Me voy con él y no entro.","Entro a las primeras clases y luego me salgo.","Entro y lo convenzo de que entre también.","Entro a clases."]],
+["Tengo la tarde libre. En el centro comunitario abrieron un taller gratuito, y mis conocidas están reunidas en la esquina.",["Voy al taller e invito a las de mi grupo.","Paso un rato con las de la esquina y después voy al taller.","Voy al taller.","Me quedo en la esquina."]],
+["Una muchacha me empuja delante de varias personas y me reta a pelear.",["Acepto pelear.","Le digo que lo arreglamos después, para no quedar mal.","Le digo que no vale la pena y me quedo ahí.","Me retiro sin contestar, aunque digan que tuve miedo."]],
+["Llego tarde a casa y mi mamá me regaña fuerte delante de mi hermano menor.",["Le respondo de mala manera, pero me quedo en casa.","Le grito y me salgo a la calle.","Espero a que las dos estemos más tranquilas y hablo con ella.","No respondo y me encierro en mi cuarto."]],
+["Una prima me invita al cine y me paga la entrada y las palomitas. A la misma hora, una conocida me invita a andar por ahí sin un plan.",["Me voy con la conocida.","Le digo que no a la conocida y me quedo en casa.","Voy un rato con mi prima y después alcanzo a la conocida.","Voy con mi prima."]],
+["Un amigo me ofrece marihuana.",["Le digo que no, pero me quedo mientras los demás fuman.","Le digo que no y le propongo hacer otra cosa juntos.","Acepto.","Le pregunto qué se siente y le digo que tal vez otro día."]],
+["Mi mamá me da dinero para pagar un recibo. De camino paso por un salón de uñas.",["Pago el recibo y después veo qué me alcanza con lo que sobra.","Me hago algo pequeño en el salón, pago el recibo con lo que queda y luego completo.","Pago el recibo y le devuelvo el cambio a mi mamá.","Me hago las uñas con ese dinero y después lo repongo."]],
+["Es de noche. Se escuchan disparos a unas cuadras y varios vecinos siguen afuera.",["Me meto a mi casa y me asomo por la ventana para ver qué pasa.","Entro a mi casa.","Me quedo afuera o voy a ver.","Entro a mi casa y les digo a los demás que también entren."]],
+["Estoy con mis amigas en una tienda de maquillaje y una de ellas me anima a llevarme algo sin pagar.",["Me quedo junto a ella mientras se lleva algo.","No me llevo nada y le digo a mi amiga que ella tampoco.","No me llevo nada y me salgo de la tienda.","Me llevo algo."]],
+["Es fin de semana por la noche. Mi mamá está trabajando y estoy sola en casa. Me invitan a salir.",["Le pido permiso a mi mamá y salgo solo si me lo da.","Salgo sin avisar y regreso a la hora que quiero.","Salgo un rato sin avisar y regreso antes de que llegue.","Me quedo en casa."]],
+["Mis amigas van a ir a una fiesta en otra colonia sin estar invitadas. Si no voy, me van a dejar de hablar.",["Voy con ellas.","No voy, aunque me dejen de hablar.","No voy y me quedo con una amiga que tampoco quiere ir.","Les digo que sí voy para que no me dejen de hablar, pero no llego."]],
+["En la calle hay una pelea entre dos personas. Se junta gente y muchos graban con el celular.",["Busco a un adulto para que las separe.","Me quedo a ver, sin grabar.","Sigo mi camino.","Grabo y animo la pelea."]],
+["Quiero ganar dinero para ayudar en casa o comprar mis cosas. Me ofrecen varios trabajos.",["Acepto atender un depósito de noche, sola.","Acepto uno por las tardes, después de la escuela, en un puesto de ropa.","Acepto atender un bar de tiempo completo y dejo la escuela.","No acepto ninguno y sigo estudiando."]],
+["Se me cae el celular y se le rompe la pantalla. En ese momento, mi hermano menor me pide ayuda con su tarea.",["Le digo que ahora no y me encierro en mi cuarto.","Aviento algo o me desquito con él.","Le respondo de mala manera.","Salgo un momento a calmarme y después lo ayudo."]],
+["En una fiesta, el novio de una amiga y sus amigos, que son mayores de edad, me invitan a tomar alcohol con ellos.",["Tomo con ellos.","Les digo que no y me voy a casa.","Me quedo con ellos, sin tomar.","Les digo que no y me quedo en la fiesta, lejos de ellos."]],
+["En redes sociales me ofrecen un trabajo fácil que paga mucho dinero a la semana.",["Lo ignoro.","Respondo y mando mis datos.","Lo bloqueo y se lo cuento a alguien de confianza.","Pregunto de qué se trata, sin dar mis datos."]],
+["Todas las tardes me toca cuidar a mis hermanos y ya voy mal en la escuela. Mi novio me propone que me vaya a vivir con él.",["Hablo con mi mamá para que encontremos una solución.","Me organizo sola para cumplir con las dos cosas.","Me voy a vivir con mi novio.","Empiezo a faltar a la escuela para cuidarlos."]],
+["Mi mamá nota que algo me pasa y me dice que puedo contar con ella.",["Le digo que no se meta y me salgo.","Le digo que ahora no, que después le platico.","Le digo que no es nada y cambio el tema.","Le cuento, aunque sea una parte."]],
+["Una muchacha habló mal de mi grupo de amigas. Varias de ellas quieren ir a golpearla.",["Voy solo a ver, sin meterme.","No voy y pongo un pretexto.","No voy y propongo otra solución, como hablar con ella o dejarlo pasar.","Voy y participo en la pelea."]],
+["Un amigo me lleva a convivir con unos conocidos suyos que venden droga, solo para pasar el rato.",["Me quedo un rato, pero no regreso.","Me voy con un pretexto.","Me quedo y me hago amiga de ellos.","Me voy con un pretexto y le digo a mi amigo que no quiero juntarme con ellos."]],
+["Una prefecta revisa solo mi mochila, delante de todos, para avergonzarme.",["Dejo que la revise y después me quejo con la orientadora.","La enfrento o me salgo de la escuela.","Dejo que la revise y le pregunto con calma por qué solo a mí.","La abro de mala gana y me burlo de ella delante de todos."]],
+["Mi novio, que es más grande que yo y se junta con los de la esquina, me revisa el celular y me pide que deje de ver a mis amigas.",["Acepto y dejo de ver a mis amigas.","Le pongo un límite y se lo cuento a una amiga o a mi mamá.","Le pongo un límite: mi celular y mis amigas no se negocian.","Le dejo ver mi celular, pero le pido que no hable de mis amigas."]],
+["Me ofrecen dinero por llevar a otras chicas a fiestas de hombres adultos; me pagan por cada chica que lleve.",["Digo que no y les advierto a mis amigas.","Digo que no, aunque insistan.","Pregunto de qué son las fiestas, solo para saber.","Acepto y llevo a alguien."]],
+["Una amiga más grande siempre me invita de comer. Un día se mete en un problema y me pide que, si alguien pregunta, diga que estuve con ella toda la tarde. Me dice: “Después de todo lo que te he dado…”.",["No le digo que no, le doy largas y sigo aceptándole cosas.","Me niego y le cuento a alguien de confianza lo que me está pidiendo.","Le digo que sí, porque siento que le debo.","Le digo que no y dejo de aceptarle cosas."]],
+["Circulan fotos íntimas de una compañera que me cae mal. En el chat del grupo todos las están compartiendo y se burlan de ella.",["No participo y me salgo del grupo.","Me burlo en el chat o las paso a otro grupo.","No comento, pero las abro y las guardo.","Pido que las borren y le aviso a un adulto."]],
+["Unos vecinos atrapan al hombre que acosaba a una amiga y lo están golpeando. Me dicen que les ayude.",["No le pego, pero me quedo viendo porque creo que se lo merece.","No participo y llamo a alguien que pueda detenerlos.","No participo y me retiro.","Participo en los golpes."]],
+["Me invitan a una reunión tranquila. Al llegar, me ofrecen bebidas preparadas con alcohol y un vapeador.",["Agarro la bebida o el vapeador, pero no lo uso; solo para no desentonar.","Acepto, porque todas lo hacen.","No acepto, pero me retiro de la reunión.","No acepto y lo sostengo aunque insistan."]],
+["Alguien se burla de mí en el chat del grupo porque no fui a una reunión hace dos semanas.",["Espero a calmarme y después lo hablo en persona.","No respondo nada.","Respondo con una indirecta o un sticker de burla.","Respondo con insultos en ese momento o voy a buscar a quien lo publicó."]],
+["Un hombre mayor me escribe por redes, me manda dinero y me propone que nos veamos a solas, sin que nadie se entere.",["Lo bloqueo.","Voy a verlo.","Lo bloqueo y le cuento a alguien de confianza.","Sigo platicando con él, pero no voy."]],
+["Una amiga me pide que entregue ropa y un paquete sellado. Me dice que no lo abra y que no haga preguntas; me pagan por la entrega.",["Pongo un pretexto y me voy.","Pregunto qué contiene el paquete y para quién es, antes de decidir.","Acepto el dinero y entrego el paquete.","Le digo claramente que no y me voy."]],
+["En mi casa los adultos están discutiendo a gritos por dinero.",["Me voy a casa de un familiar de confianza y aviso.","Salgo un rato a la banqueta y regreso.","Me encierro en mi cuarto con audífonos.","Me salgo de noche con mis amigos."]],
+["Mis amigas me retan a cruzar una avenida con carros pasando para grabar un video para redes sociales.",["Acepto y cruzo para el video.","No lo hago y les digo a las demás que tampoco lo hagan.","Voy con ellas, pero solo grabo desde la banqueta.","No lo hago, aunque digan que tengo miedo."]],
+["Me ofrecen cristal (metanfetamina).",["Lo rechazo, pero me quedo con el grupo.","Digo que tal vez otro día.","Lo rechazo y me alejo de quien me lo ofrece.","Lo pruebo solo una vez."]]
+]};
+/* Lista completa de preguntas por versión, en el mismo orden y número que el papel (P1…P36 / P1…P40). */
+function buildQs(v){
+  const qs=CTX[v].map(([t,o])=>({t,o,kind:"ctx"}));
+  SC[v].forEach(([t,o])=>qs.push({t,o,kind:"sc"}));
+  return qs;
+}
+const QS={H:buildQs("H"),M:buildQs("M")};
+
+/* ============ CONFIGURACIÓN ============ */
+const CONFIG={
+  SHEETS_URL:'https://script.google.com/macros/s/AKfycbytPsOhd2pdFJFB4F7wHHS2m6QkrNrn2CC3adsnkTbsl3JGf3uINRx5xwbGXXMLcvBV/exec',
+  SHEETS_TOKEN:'cj-2026-x7f2m9',
+  APP_VERSION:'C1.0'
+};
+
+/* ============ ALMACENAMIENTO EN LA TABLET + ENVÍO ============ */
+const KEY="cj_cuestionario_v1";
+let mem={sesion:{grupo:"",colonia:""},registros:[]};
+function load(){try{const s=localStorage.getItem(KEY);if(s)mem=JSON.parse(s)}catch(e){} return mem}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(mem))}catch(e){}}
+load();
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const MOTIVOS={codigo_no_existe:"El código no existe en la lista.",codigo_capturado:"Ese código ya tiene un cuestionario en la base.",datos_incompletos:"Faltan datos.",falta_hoja_captura:"La base no tiene la pestaña Captura."};
+
+function filaCaptura(r){
+  const cols=[r.codigo,r.version,r.fecha,r.grupo,r.colonia,r.edad==="18 o más"?"18+":r.edad,r.apodo];
+  for(let k=0;k<40;k++)cols.push(r.resp[k]??"");
+  return cols;
+}
+async function enviar(r){
+  const body={token:CONFIG.SHEETS_TOKEN,tipo:"cuestionario",record:{id:r.id,codigo:r.codigo,version:r.version,fila:filaCaptura(r),
+    tiempos:r.tiempos,fecha:r.fecha,hora_inicio:r.hora_inicio,hora_fin:r.hora,duracion_seg:r.dur,app_version:CONFIG.APP_VERSION}};
+  try{
+    const res=await fetch(CONFIG.SHEETS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});
+    if(!res.ok)return "pendiente";
+    const j=await res.json();
+    if(j.ok)return "enviado";
+    if(/^codigo_|datos_|falta_/.test(j.error||""))return "rechazado:"+j.error;
+    return "pendiente";
+  }catch(e){return "pendiente"}
+}
+let syncing=false;
+async function sincronizar(){
+  if(syncing)return; syncing=true;
+  try{
+    for(const r of mem.registros){
+      if(r.estado==="pendiente"){r.estado=await enviar(r);save();}
+    }
+  }finally{syncing=false; if(S.screen==="panel"||S.screen==="inicio"||S.screen==="fin")render();}
+}
+window.addEventListener("online",sincronizar);
+setInterval(()=>{if(navigator.onLine!==false&&mem.registros.some(r=>r.estado==="pendiente"))sincronizar()},60000);
+
+async function validarCodigo(cod){
+  if(cod==="PRUEBA")return {valido:true};
+  const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),7000);
+  try{
+    const res=await fetch(CONFIG.SHEETS_URL+"?tipo=cuestionario&codigo="+encodeURIComponent(cod),{signal:ctl.signal});
+    const j=await res.json();clearTimeout(to);
+    return j.ok?{valido:!!j.valido,motivo:j.motivo}:{sinConexion:true};
+  }catch(e){clearTimeout(to);return {sinConexion:true}}
+}
+
+/* ============ ESTADO ============ */
+let S={screen:"inicio"};
+const app=document.getElementById("app");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const CODE_RE=/^CJ-\d{4}$/;
+function normCode(s){s=String(s||"").toUpperCase().replace(/\s+/g,"");if(s==="PRUEBA")return s;const m=s.match(/^(?:CJ-?)?(\d{1,4})$/);return m?"CJ-"+m[1].padStart(4,"0"):s}
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+const hhmm=d=>String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
+
+function render(){
+  const f={inicio,codigo,perfil,instrucciones,pregunta,fin,panel}[S.screen];
+  app.innerHTML=f();
+  bind();
+  if(S.screen!=="pregunta"||S.scrollTop!==false)window.scrollTo(0,0);
+}
+function resumenEnvio(){
+  const p=mem.registros.filter(r=>r.estado==="pendiente").length, x=mem.registros.filter(r=>String(r.estado).startsWith("rechazado")).length;
+  if(!mem.registros.length)return "";
+  if(p||x)return `<div class="proto"><span>⚠</span><span>${p?`<b>${p} sin enviar.</b> Se mandan solos cuando haya internet. `:""}${x?`<b>${x} rechazado${x===1?"":"s"}.</b> Revísalos en el panel.`:""}</span></div>`;
+  return `<div class="okbox">Todos los cuestionarios de esta tablet ya están en la base.</div>`;
+}
+
+/* ---- Pantalla 1: facilitador prepara la sesión ---- */
+function inicio(){
+  const n=mem.registros.length;
+  return `${resumenEnvio()}
+  <div><p class="eyebrow">Sesión 1 · Facilitador</p><h1>Cuestionario de Situaciones Cotidianas</h1></div>
+  <div class="steps">
+    <div class="step"><b>1. Facilitador</b>Escribe el código del participante.</div>
+    <div class="step"><b>2. Participante</b>Elige chico o chica, edad y apodo, y contesta.</div>
+    <div class="step"><b>3. Fin</b>Devuelve la tablet; sigue el siguiente.</div>
+  </div>
+  <div class="card">
+    <h2>Datos de la sesión</h2>
+    <p class="hint">Se escriben una vez y se aplican a todos los participantes de hoy.</p>
+    <div><label for="grupo">Grupo</label><input type="text" id="grupo" value="${esc(mem.sesion.grupo)}" placeholder="Ej. Juárez · Grupo A" autocomplete="off"></div>
+    <div><label for="colonia">Colonia</label><input type="text" id="colonia" value="${esc(mem.sesion.colonia)}" placeholder="Ej. Col. Las Palmas" autocomplete="off"></div>
+    <p class="err" id="e1" hidden>Escribe el grupo y la colonia para empezar.</p>
+    <button class="btn btn-primary btn-block" id="go">Empezar con un participante</button>
+  </div>
+  <div class="foot"><button class="linkish" id="topanel">Panel del facilitador (${n} en esta tablet)</button></div>`;
+}
+/* ---- Pantalla 2: código (lo escribe el facilitador) ---- */
+function codigo(){
+  return `<div><p class="eyebrow">Lo escribe el facilitador</p><h2>Código del participante</h2></div>
+  <div class="card">
+    <div><label for="cod">Código</label><input type="text" id="cod" class="code-input" placeholder="CJ-0000" autocomplete="off" value="${esc(S.cod||"")}"><p class="hint">Formato CJ-0000. Puedes escribir solo el número (por ejemplo 12) y se completa solo. Para practicar, usa PRUEBA.</p></div>
+    <p class="err" id="e2" hidden></p>
+    <p class="hint" id="chk" hidden>Revisando el código…</p>
+    <div class="nav"><button class="btn btn-ghost" id="back">Volver</button><button class="btn btn-primary" id="go">Continuar y entregar la tablet</button></div>
+  </div>`;
+}
+/* ---- Pantalla 3: perfil (lo llena el participante) ---- */
+function perfil(){
+  const ages=["12","13","14","15","16","17","18 o más"];
+  return `<div><p class="eyebrow">Antes de empezar</p><h2>Cuéntanos un poco de ti</h2></div>
+  <div class="card">
+    <div><label>¿Eres chico o chica?</label><div class="who">
+      <button class="chip" data-v="H" aria-pressed="${S.v==="H"}">Chico</button>
+      <button class="chip" data-v="M" aria-pressed="${S.v==="M"}">Chica</button></div></div>
+    <div><label>¿Cuántos años tienes?</label><div class="chips">${ages.map(a=>`<button class="chip" data-age="${a}" aria-pressed="${S.edad===a}">${a}</button>`).join("")}</div></div>
+    <div><label for="apodo">¿Cómo te gusta que te digan?</label><input type="text" id="apodo" maxlength="30" value="${esc(S.apodo||"")}" placeholder="Tu apodo" autocomplete="off"></div>
+    <button class="btn btn-primary btn-block" id="go" ${S.v&&S.edad&&(S.apodo||"").trim()?"":"disabled"}>Siguiente</button>
+  </div>`;
+}
+function instrucciones(){
+  return `<div><p class="eyebrow">Instrucciones</p><h2>Hola, ${esc(S.apodo)}</h2></div>
+  <div class="card"><p style="font-size:20px">${INSTR[S.v]}</p>
+  <button class="btn btn-primary btn-block" id="go">Empezar</button></div>`;
+}
+/* ---- Pantalla de pregunta ---- */
+function pregunta(){
+  const qs=QS[S.v], i=S.i, q=qs[i], total=qs.length, sel=S.r[i];
+  const isYN=q.kind==="ctx";
+  const part=isYN?"Preguntas sobre ti":"Situaciones";
+  const opts=q.o.map((o,k)=>{
+    const val=isYN?o:"abcd"[k];
+    const lab=isYN?"":`<span class="l">${"abcd"[k]}</span>`;
+    return `<button class="opt" role="radio" aria-checked="${sel===val}" data-val="${esc(val)}">${lab}<span>${esc(o)}</span></button>`;
+  }).join("");
+  return `<div class="bar"><div class="bar-top"><span class="part">${part}</span><span>${i+1} de ${total}</span></div>
+    <div class="track"><div class="fill" style="width:${(i/total)*100}%"></div></div></div>
+  <div class="card">
+    <p class="qnum">${i+1}.</p>
+    <p class="qtext">${esc(q.t)}</p>
+    <div class="opts ${isYN&&q.o.length===2?"yn":""}" role="radiogroup">${opts}</div>
+  </div>
+  <div class="nav"><button class="btn btn-ghost" id="back" ${i===0?"disabled":""}>Atrás</button>
+  <button class="btn btn-primary" id="go" ${sel?"":"disabled"}>${i===total-1?"Terminar":"Siguiente"}</button></div>`;
+}
+function fin(){
+  return `<div class="card thanks"><p class="eyebrow">Listo</p><h1>¡Gracias por contestar!</h1>
+  <p class="hint" style="font-size:18px">Entrégale la tablet al facilitador.</p></div>
+  <div class="card"><p class="hint">Para el facilitador</p>
+  <button class="btn btn-primary btn-block" id="next">Siguiente participante</button>
+  <button class="btn btn-ghost btn-block" id="home">Ir al inicio</button></div>`;
+}
+/* ---- Panel del facilitador ---- */
+function estadoPill(e){
+  if(e==="enviado")return `<span class="pill ok">Enviado</span>`;
+  if(e==="pendiente")return `<span class="pill wait">Sin enviar</span>`;
+  const m=String(e).split(":")[1]||"";
+  return `<span class="pill bad" title="${esc(MOTIVOS[m]||m)}">Rechazado</span>`;
+}
+function panel(){
+  const rs=mem.registros;
+  const rows=rs.map(r=>`<tr><td>${esc(r.codigo)}</td><td>${r.version}</td><td>${esc(r.apodo)}</td><td>${esc(r.edad)}</td><td>${esc(r.grupo)}</td><td>${r.hora.slice(0,5)}</td><td>${Math.round(r.dur/6)/10} min</td><td>${estadoPill(r.estado)}</td></tr>`).join("");
+  const rech=rs.filter(r=>String(r.estado).startsWith("rechazado"));
+  const tsv=rs.filter(r=>r.estado!=="enviado").map(r=>filaCaptura(r).map(c=>String(c).replace(/\t|\n/g," ")).join("\t")).join("\n");
+  const pend=rs.filter(r=>r.estado==="pendiente").length, env=rs.filter(r=>r.estado==="enviado").length;
+  return `<div><p class="eyebrow">Facilitador</p><h2>Panel de esta tablet</h2></div>
+  <div class="card">
+    ${rs.length?`<div class="tablewrap"><table><thead><tr><th>Código</th><th>Versión</th><th>Apodo</th><th>Edad</th><th>Grupo</th><th>Hora</th><th>Duración</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="hint">Todavía no hay cuestionarios en esta tablet. Cuando alguien termine, aparecerá aquí con su código, hora y estado de envío.</p>`}
+    ${rech.length?`<div class="proto"><span>⚠</span><span>${rech.map(r=>`<b>${esc(r.codigo)}:</b> ${esc(MOTIVOS[String(r.estado).split(":")[1]]||"rechazado")}`).join("<br>")}<br>Revisa el código en la lista y captúralo a mano con las filas de abajo.</span></div>`:""}
+    <div class="row"><button class="btn btn-primary" id="sync" ${pend?"":"disabled"}>Reintentar envío (${pend})</button></div>
+  </div>
+  <div class="card">
+    <h2>Respaldo: filas para Captura</h2>
+    <p class="hint">Solo los que no se han enviado. Si algo no llega a la base, cópialos y pégalos en la pestaña Captura, columna A de la primera fila vacía. Salen en el mismo orden (código, versión, fecha, grupo, colonia, edad, apodo, P1…P40).</p>
+    <textarea id="tsv" readonly>${esc(tsv)}</textarea>
+    <div class="row"><button class="btn btn-ghost" id="copy" ${tsv?"":"disabled"}>Copiar filas</button><button class="btn btn-ghost" id="csv" ${rs.length?"":"disabled"}>Descargar CSV (todos)</button><span class="hint" id="copied" hidden>Copiado.</span></div>
+  </div>
+  <div class="card">
+    <h2>Limpiar esta tablet</h2>
+    <p class="hint">Borra de la tablet solo lo que ya está en la base.</p>
+    <div class="row" id="delrow"><button class="btn btn-warn" id="del" ${env?"":"disabled"}>Borrar ${env} enviado${env===1?"":"s"}</button></div>
+  </div>
+  <button class="btn btn-ghost btn-block" id="home">Volver al inicio</button>`;
+}
+function descargarCSV(){
+  const head=["CÓDIGO","VERSIÓN (H/M)","FECHA","GRUPO","COLONIA","EDAD","APODO"];for(let k=1;k<=40;k++)head.push("P"+k);head.push("estado_envio","id","duracion_seg");
+  const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const lines=[head.map(q).join(",")].concat(mem.registros.map(r=>filaCaptura(r).concat([r.estado,r.id,r.dur]).map(q).join(",")));
+  const blob=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="cuestionarios_"+today()+".csv";document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
+/* ============ EVENTOS ============ */
+function bind(){
+  const $=id=>document.getElementById(id);
+  if(S.screen==="inicio"){
+    $("go").onclick=()=>{const g=$("grupo").value.trim(),c=$("colonia").value.trim();
+      if(!g||!c){$("e1").hidden=false;return}
+      mem.sesion={grupo:g,colonia:c};save();S={screen:"codigo"};render();};
+    $("topanel").onclick=()=>{S={screen:"panel"};render()};
+  }
+  if(S.screen==="codigo"){
+    const inp=$("cod");inp.focus();
+    const err=t=>{$("e2").textContent=t;$("e2").hidden=false;$("chk").hidden=true;$("go").disabled=false};
+    inp.oninput=()=>{S.cod=inp.value;$("e2").hidden=true};
+    $("back").onclick=()=>{S={screen:"inicio"};render()};
+    $("go").onclick=async()=>{const c=normCode(inp.value);inp.value=c;
+      if(c!=="PRUEBA"&&!CODE_RE.test(c))return err("Ese código no tiene el formato CJ-0000. Revísalo en la lista.");
+      if(c!=="PRUEBA"&&mem.registros.some(r=>r.codigo===c&&!String(r.estado).startsWith("rechazado")))return err("Ese código ya se usó en esta tablet. Revisa la lista de asistencia.");
+      $("go").disabled=true;$("chk").hidden=false;
+      const v=await validarCodigo(c);
+      if(v.valido===false){
+        if(v.motivo==="no_existe")return err("Ese código no existe en la lista de códigos.");
+        if(v.motivo==="capturado")return err("Ese código ya tiene un cuestionario en la base.");
+        if(v.motivo==="usado_en_juego")return err("Ese código ya se usó en el videojuego. Revisa la lista de asistencia.");
+        return err("No se puede usar ese código.");
+      }
+      S={screen:"perfil",cod:c,sinConexion:!!v.sinConexion};render();};
+  }
+  if(S.screen==="perfil"){
+    document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.apodo=$("apodo").value;S.v=S.v===b.dataset.v?null:b.dataset.v;render()});
+    document.querySelectorAll("[data-age]").forEach(b=>b.onclick=()=>{S.apodo=$("apodo").value;S.edad=S.edad===b.dataset.age?null:b.dataset.age;render()});
+    const ap=$("apodo");
+    ap.oninput=()=>{S.apodo=ap.value;$("go").disabled=!(S.v&&S.edad&&ap.value.trim())};
+    $("go").onclick=()=>{S.apodo=ap.value.trim();S.screen="instrucciones";render()};
+  }
+  if(S.screen==="instrucciones"){
+    $("go").onclick=()=>{S.screen="pregunta";S.i=0;S.r=[];S.t=[];S.t0=Date.now();S.ini=new Date();S.qStart=Date.now();render()};
+  }
+  if(S.screen==="pregunta"){
+    document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{S.r[S.i]=b.dataset.val;
+      document.querySelectorAll(".opt").forEach(x=>x.setAttribute("aria-checked",x===b));$("go").disabled=false});
+    $("back").onclick=()=>{if(S.i>0){S.i--;S.qStart=Date.now();render()}};
+    $("go").onclick=()=>{S.t[S.i]=Math.round((Date.now()-S.qStart)/100)/10;
+      if(S.i<QS[S.v].length-1){S.i++;S.qStart=Date.now();render();}
+      else{const now=new Date();
+        const r={id:uid(),codigo:S.cod,version:S.v,fecha:today(),grupo:mem.sesion.grupo,colonia:mem.sesion.colonia,
+          edad:S.edad,apodo:S.apodo,resp:S.r.slice(),tiempos:S.t.slice(),hora_inicio:hhmm(S.ini),hora:hhmm(now),
+          dur:Math.round((Date.now()-S.t0)/1000),estado:"pendiente"};
+        mem.registros.push(r);save();S={screen:"fin"};render();sincronizar();}};
+  }
+  if(S.screen==="fin"){
+    $("next").onclick=()=>{S={screen:"codigo"};render()};
+    $("home").onclick=()=>{S={screen:"inicio"};render()};
+  }
+  if(S.screen==="panel"){
+    $("home").onclick=()=>{S={screen:"inicio"};render()};
+    $("sync").onclick=()=>{$("sync").disabled=true;$("sync").textContent="Enviando…";sincronizar()};
+    const c=$("copy");
+    if(c)c.onclick=()=>{const ta=$("tsv");const done=()=>{$("copied").hidden=false};
+      try{navigator.clipboard.writeText(ta.value).then(done,()=>{ta.select();done()})}catch(e){ta.select();done()}};
+    const v=$("csv"); if(v)v.onclick=descargarCSV;
+    const d=$("del");
+    if(d)d.onclick=()=>{$("delrow").innerHTML=`<span class="hint" style="align-self:center">¿Seguro? No se puede deshacer.</span><button class="btn btn-warn" id="del2">Sí, borrar</button><button class="btn btn-ghost" id="cancel">Cancelar</button>`;
+      $("del2").onclick=()=>{mem.registros=mem.registros.filter(r=>r.estado!=="enviado");save();render()};$("cancel").onclick=()=>render();};
+  }
+}
+render();
+sincronizar();
+</script>
+</body>
+</html>
