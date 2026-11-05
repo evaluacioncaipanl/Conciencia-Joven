@@ -289,7 +289,7 @@ async function sincronizar(){
     for(const r of mem.registros){
       if(r.estado==="pendiente"){r.estado=await enviar(r);save();}
     }
-  }finally{syncing=false; if(S.screen==="panel"||S.screen==="inicio"||S.screen==="fin")render();}
+  }finally{syncing=false; if(S.screen==="panel")render();}
 }
 window.addEventListener("online",sincronizar);
 setInterval(()=>{if(navigator.onLine!==false&&mem.registros.some(r=>r.estado==="pendiente"))sincronizar()},60000);
@@ -313,11 +313,14 @@ function normCode(s){s=String(s||"").toUpperCase().replace(/\s+/g,"");if(s==="PR
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 const hhmm=d=>String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
 
+let ultimaPantalla=null;
 function render(){
   const f={inicio,codigo,perfil,instrucciones,pregunta,fin,panel}[S.screen];
   app.innerHTML=f();
   bind();
-  if(S.screen!=="pregunta"||S.scrollTop!==false)window.scrollTo(0,0);
+  const clave=S.screen+(S.screen==="pregunta"?":"+S.i:"");
+  if(clave!==ultimaPantalla)window.scrollTo(0,0);
+  ultimaPantalla=clave;
 }
 function resumenEnvio(){
   const p=mem.registros.filter(r=>r.estado==="pendiente").length, x=mem.registros.filter(r=>String(r.estado).startsWith("rechazado")).length;
@@ -488,8 +491,11 @@ function bind(){
       S={screen:"perfil",cod:c,sinConexion:!!v.sinConexion};render();};
   }
   if(S.screen==="perfil"){
-    document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.apodo=$("apodo").value;S.v=S.v===b.dataset.v?null:b.dataset.v;render()});
-    document.querySelectorAll("[data-age]").forEach(b=>b.onclick=()=>{S.apodo=$("apodo").value;S.edad=S.edad===b.dataset.age?null:b.dataset.age;render()});
+    const listo=()=>{$("go").disabled=!(S.v&&S.edad&&$("apodo").value.trim())};
+    document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{S.v=S.v===b.dataset.v?null:b.dataset.v;
+      document.querySelectorAll("[data-v]").forEach(x=>x.setAttribute("aria-pressed",String(S.v===x.dataset.v)));listo()});
+    document.querySelectorAll("[data-age]").forEach(b=>b.onclick=()=>{S.edad=S.edad===b.dataset.age?null:b.dataset.age;
+      document.querySelectorAll("[data-age]").forEach(x=>x.setAttribute("aria-pressed",String(S.edad===x.dataset.age)));listo()});
     const ap=$("apodo");
     ap.oninput=()=>{S.apodo=ap.value;$("go").disabled=!(S.v&&S.edad&&ap.value.trim())};
     $("go").onclick=()=>{S.apodo=ap.value.trim();S.screen="instrucciones";render()};
