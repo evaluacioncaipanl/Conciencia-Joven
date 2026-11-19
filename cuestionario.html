@@ -127,6 +127,18 @@ main.b.fin>.inner{flex:1;justify-content:space-between}
 .sub{margin:0;font-size:16px;color:var(--muted)}
 .secb{display:flex;flex-direction:column;gap:4px;padding-bottom:14px;border-bottom:1px solid var(--line)}
 .secb h2{font-family:var(--inst);font-weight:700;font-size:22px}
+.portada{background:var(--accent);color:var(--on-accent)}
+.portada .inner{padding-block:22px 26px;display:flex;flex-direction:column;gap:10px}
+.portada-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:var(--inst);font-weight:700;font-size:15px}
+.portada .h1b{color:var(--on-accent)}
+.net{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:5px 12px;font-size:14px;font-weight:700;background:#FFFFFF;color:#2C7A3F}
+.net.off{color:#B3261E}
+.net .pt{width:8px;height:8px;border-radius:50%;background:currentColor}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.stat{border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface)}
+.stat b{display:block;font-family:var(--inst);font-weight:800;font-size:clamp(26px,4.5vw,34px);line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:14px;color:var(--muted)}
+.stat.alerta b{color:var(--accent-ink)}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .fld{display:flex;flex-direction:column;gap:6px;min-width:0}
 .fld label{margin:0}
@@ -263,7 +275,7 @@ const QS={H:buildQs("H"),M:buildQs("M")};
 const CONFIG={
   SHEETS_URL:'https://script.google.com/macros/s/AKfycbytPsOhd2pdFJFB4F7wHHS2m6QkrNrn2CC3adsnkTbsl3JGf3uINRx5xwbGXXMLcvBV/exec',
   SHEETS_TOKEN:'cj-2026-x7f2m9',
-  APP_VERSION:'C1.2'
+  APP_VERSION:'C1.3'
 };
 
 /* ============ ALMACENAMIENTO EN LA TABLET + ENVÍO ============ */
@@ -300,7 +312,7 @@ async function sincronizar(){
     for(const r of mem.registros){
       if(r.estado==="pendiente"){r.estado=await enviar(r);save();}
     }
-  }finally{syncing=false; if(S.screen==="panel")render();}
+  }finally{syncing=false; if(S.screen==="panel")render(); else pintarEstado();}
 }
 window.addEventListener("online",sincronizar);
 setInterval(()=>{if(navigator.onLine!==false&&mem.registros.some(r=>r.estado==="pendiente"))sincronizar()},60000);
@@ -362,9 +374,34 @@ function shell(n,desc,conTitulo,body,extra){
 }
 
 /* ---- Pantalla 1A: inicio (facilitador) ---- */
+function fechaCorta(){const s=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});return s.charAt(0).toUpperCase()+s.slice(1)}
+function conteos(){const h=today(),R=mem.registros;
+  return {hoy:R.filter(r=>r.fecha===h).length, pend:R.filter(r=>r.estado==="pendiente").length, total:R.length,
+          rech:R.filter(r=>String(r.estado).startsWith("rechazado")).length}}
+function netHTML(){const on=navigator.onLine!==false;return `<span class="net${on?"":" off"}" id="net"><span class="pt"></span>${on?"En línea":"Sin internet"}</span>`}
+// Actualiza fecha, conexión y contadores sin volver a pintar la pantalla (para no borrar lo que se está escribiendo).
+function pintarEstado(){
+  if(S.screen!=="inicio")return;
+  const n=document.getElementById("net");if(n)n.outerHTML=netHTML();
+  const c=conteos();
+  [["s-hoy",c.hoy],["s-pend",c.pend],["s-total",c.total]].forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.textContent=v});
+  const p=document.getElementById("st-pend");if(p)p.classList.toggle("alerta",c.pend>0);
+}
+window.addEventListener("online",pintarEstado);window.addEventListener("offline",pintarEstado);
 function inicio(){
-  return shell(1,true,false,`${resumenEnvio()}
-  <h1 class="h1b">Cuestionario de Situaciones Cotidianas</h1>
+  const c=conteos();
+  const aviso=c.rech?`<div class="proto"><span>⚠</span><span><b>${c.rech} rechazado${c.rech===1?"":"s"}.</b> Revísalos en el panel.</span></div>`:"";
+  return `<div class="shell">${hdr(false)}${pasos(1,true)}
+  <section class="portada"><div class="inner">
+    <div class="portada-top"><span>${fechaCorta()}</span>${netHTML()}</div>
+    <h1 class="h1b">Cuestionario de Situaciones Cotidianas</h1>
+  </div></section>
+  <main class="b"><div class="inner">${aviso}
+  <div class="stats">
+    <div class="stat"><b id="s-hoy">${c.hoy}</b><span>Hoy</span></div>
+    <div class="stat${c.pend?" alerta":""}" id="st-pend"><b id="s-pend">${c.pend}</b><span>Sin enviar</span></div>
+    <div class="stat"><b id="s-total">${c.total}</b><span>En esta tablet</span></div>
+  </div>
   <div class="fld" style="gap:20px">
     <div class="secb"><h2>Datos de la sesión</h2></div>
     <div class="grid2">
@@ -374,7 +411,8 @@ function inicio(){
     <p class="err" id="e1" hidden>Escribe el grupo y la colonia para empezar.</p>
   </div>
   <button class="bb pri" id="go">Empezar</button>
-  <button class="lnk" id="topanel">${GEAR}Panel de control</button>`);
+  <button class="lnk" id="topanel">${GEAR}Panel de control</button>
+  </div></main><footer class="ftr"><div class="inner">${PIE}</div></footer></div>`;
 }
 /* ---- Pantalla 1B: código (facilitador) ---- */
 function codigo(){
