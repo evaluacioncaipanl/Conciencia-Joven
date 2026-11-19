@@ -64,12 +64,22 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .fill{height:100%;background:var(--accent);border-radius:99px;transition:width .25s ease}
 .qnum{font-family:var(--display);font-weight:800;font-size:20px;color:var(--accent-ink)}
 .qtext{font-size:clamp(21px,3.4vw,25px);line-height:1.4;font-weight:700}
-.part{font-size:14px;color:var(--muted);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.part{font-size:14px;color:var(--accent-ink);font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .opts{display:flex;flex-direction:column;gap:12px}
 .opt{display:flex;gap:14px;align-items:flex-start;text-align:left;font:inherit;font-size:19px;line-height:1.4;padding:16px 18px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:64px}
 .opt .l{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;border:2px solid var(--line);color:var(--muted)}
-.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
-.opt[aria-checked="true"] .l{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.opt{transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent);color:var(--on-accent);font-weight:700}
+.opt[aria-checked="true"] .l{background:var(--surface);border-color:var(--surface);color:var(--accent-ink)}
+.opt .ck{display:none}
+.opt[aria-checked="true"] .l .lt{display:none}
+.opt[aria-checked="true"] .l .ck{display:block}
+.opt.pop{animation:pop .22s ease-out}
+@keyframes pop{0%{transform:scale(.97)}60%{transform:scale(1.015)}100%{transform:scale(1)}}
+.hito{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent-ink);font-weight:700;font-size:16px;border-radius:99px;padding:6px 14px;animation:hito .35s ease-out}
+@keyframes hito{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.done .bigchk{animation:festejo .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes festejo{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
 .yn{flex-direction:row;flex-wrap:wrap}
 .yn .opt{flex:1 1 140px;justify-content:center;font-weight:700;font-size:21px}
 .nav{display:flex;justify-content:space-between;gap:12px}
@@ -88,7 +98,7 @@ textarea{width:100%;min-height:110px;font-family:var(--mono);font-size:12px;bord
 .thanks h1{font-size:clamp(32px,6vw,46px)}
 .linkish{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;text-decoration:underline;cursor:pointer;padding:6px}
 .foot{display:flex;justify-content:center}
-@media (prefers-reduced-motion:reduce){.fill{transition:none}}
+@media (prefers-reduced-motion:reduce){.fill,.opt{transition:none}.opt.pop,.hito,.done .bigchk{animation:none}}
 .pill.ok{background:#E3F1E6;color:var(--ok)} .pill.wait{background:var(--accent-soft);color:var(--accent-ink)} .pill.bad{background:var(--warn-soft);color:var(--warn)}
 .okbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:15px;color:var(--ok);font-weight:700}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .pill.ok{background:#1D3324} }
@@ -253,14 +263,15 @@ const QS={H:buildQs("H"),M:buildQs("M")};
 const CONFIG={
   SHEETS_URL:'https://script.google.com/macros/s/AKfycbytPsOhd2pdFJFB4F7wHHS2m6QkrNrn2CC3adsnkTbsl3JGf3uINRx5xwbGXXMLcvBV/exec',
   SHEETS_TOKEN:'cj-2026-x7f2m9',
-  APP_VERSION:'C1.1'
+  APP_VERSION:'C1.2'
 };
 
 /* ============ ALMACENAMIENTO EN LA TABLET + ENVÍO ============ */
 const KEY="cj_cuestionario_v1";
 let mem={sesion:{grupo:"",colonia:""},registros:[]};
-function load(){try{const s=localStorage.getItem(KEY);if(s)mem=JSON.parse(s)}catch(e){} return mem}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(mem))}catch(e){}}
+// Grupo y colonia viven solo en memoria: se conservan entre participantes y se borran al recargar la página.
+function load(){try{const s=localStorage.getItem(KEY);if(s)mem=JSON.parse(s)}catch(e){} mem.sesion={grupo:"",colonia:""}; return mem}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({registros:mem.registros}))}catch(e){}}
 load();
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 const MOTIVOS={codigo_no_existe:"El código no existe en la lista.",codigo_capturado:"Ese código ya tiene un cuestionario en la base.",datos_incompletos:"Faltan datos.",falta_hoja_captura:"La base no tiene la pestaña Captura."};
@@ -332,13 +343,14 @@ function resumenEnvio(){
 /* ============ PROPUESTA B: piezas comunes ============ */
 const CHK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const GEAR='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
+const FLAG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg>';
 const INSTR_TXT="A continuación hay varias situaciones que pueden pasarle a jóvenes como tú. Lee cada una y toca la opción que más se parece a lo que tú harías.";
 const PIE="Centro de Atención Integral para Adolescentes";
 function hdr(conTitulo){
   return `<header class="hdr"><div class="inner"><p class="hdr-t">Sesión 1</p>${conTitulo?'<p class="hdr-s">Cuestionario de Situaciones Cotidianas</p>':""}</div></header>`;
 }
 function pasos(n,desc){
-  const L=[["Datos de sesión","Escribe el código del participante."],["Información general","Datos generales del adolescente y cuestionario."],["Cierre",""]];
+  const L=[["Datos de sesión","Escribe el código."],["Información general","Datos generales del adolescente y cuestionario."],["Cierre",""]];
   return `<section class="steps-b" aria-label="Pasos"><div class="inner">${L.map(([t,d],i)=>{
     const k=i+1, st=k<n?"hecho":(k===n?"cur":"");
     const dot=k<n?`<span class="dot">${CHK}</span>`:`<span class="dot">${k}</span>`;
@@ -354,23 +366,22 @@ function inicio(){
   return shell(1,true,false,`${resumenEnvio()}
   <h1 class="h1b">Cuestionario de Situaciones Cotidianas</h1>
   <div class="fld" style="gap:20px">
-    <div class="secb"><h2>Datos de la sesión</h2><p class="hint" style="font-size:15px">Se escriben una vez y se aplican a todos los participantes de hoy.</p></div>
+    <div class="secb"><h2>Datos de la sesión</h2></div>
     <div class="grid2">
       <div class="fld"><label for="grupo">Grupo</label><input class="inp" type="text" id="grupo" value="${esc(mem.sesion.grupo)}" placeholder="Ej. Juárez, Grupo A" autocomplete="off"></div>
       <div class="fld"><label for="colonia">Colonia</label><input class="inp" type="text" id="colonia" value="${esc(mem.sesion.colonia)}" placeholder="Ej. Col. Las Palmas" autocomplete="off"></div>
     </div>
     <p class="err" id="e1" hidden>Escribe el grupo y la colonia para empezar.</p>
   </div>
-  <button class="bb pri" id="go">Empezar con un participante</button>
+  <button class="bb pri" id="go">Empezar</button>
   <button class="lnk" id="topanel">${GEAR}Panel de control</button>`);
 }
 /* ---- Pantalla 1B: código (facilitador) ---- */
 function codigo(){
-  return shell(1,false,true,`<h1 class="h1b">Código del participante</h1>
+  return shell(1,false,true,`<h1 class="h1b">Código</h1>
   <div class="fld" style="gap:10px">
     <label for="cod">Código</label>
-    <input class="inp code" type="text" id="cod" placeholder="CJ-K7M4" autocomplete="off" value="${esc(S.cod||"")}">
-    <p class="hint" style="font-size:15px">Formato CJ- y 4 letras o números, como viene en la lista (por ejemplo CJ-K7M4). Puedes escribir solo los 4 caracteres y se completa solo.</p>
+    <input class="inp code" type="text" id="cod" autocomplete="off" value="${esc(S.cod||"")}">
   </div>
   <p class="err" id="e2" hidden></p>
   <p class="hint" id="chk" hidden>Revisando el código…</p>
@@ -399,11 +410,12 @@ function pregunta(){
   const part=isYN?"Preguntas sobre ti":"Situaciones";
   const opts=q.o.map((o,k)=>{
     const val=isYN?o:"abcd"[k];
-    const lab=isYN?"":`<span class="l">${"abcd"[k]}</span>`;
+    const lab=isYN?"":`<span class="l"><span class="lt">${"abcd"[k]}</span><span class="ck">${CHK}</span></span>`;
     return `<button class="opt" role="radio" aria-checked="${sel===val}" data-val="${esc(val)}">${lab}<span>${esc(o)}</span></button>`;
   }).join("");
   return `<div class="wrap"><div class="bar"><div class="bar-top"><span class="part">${part}</span><span>${i+1} de ${total}</span></div>
     <div class="track"><div class="fill" style="width:${(i/total)*100}%"></div></div></div>
+  ${i===Math.floor(total/2)?`<p class="hito">${FLAG}Vas a la mitad</p>`:""}
   <div class="card">
     <p class="qnum">${i+1}.</p>
     <p class="qtext">${esc(q.t)}</p>
@@ -419,7 +431,7 @@ function fin(){
     <p class="sub" style="font-size:18px">Listo</p>
     <h1 class="h1b xl">¡Gracias por contestar!</h1>
   </div>
-  <div class="stack"><button class="bb pri" id="next">Siguiente participante</button><button class="bb sec" id="home" style="width:100%">Ir al inicio</button></div>`,"fin");
+  <div class="stack"><button class="bb pri" id="next">Siguiente</button><button class="bb sec" id="home" style="width:100%">Ir al inicio</button></div>`,"fin");
 }
 
 /* ---- Panel del facilitador ---- */
@@ -437,19 +449,17 @@ function panel(){
   const pend=rs.filter(r=>r.estado==="pendiente").length, env=rs.filter(r=>r.estado==="enviado").length;
   return `${hdr(true)}<div class="wrap"><div><p class="eyebrow">Facilitador</p><h2>Panel de esta tablet</h2></div>
   <div class="card">
-    ${rs.length?`<div class="tablewrap"><table><thead><tr><th>Código</th><th>Versión</th><th>Apodo</th><th>Edad</th><th>Grupo</th><th>Hora</th><th>Duración</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="hint">Todavía no hay cuestionarios en esta tablet. Cuando alguien termine, aparecerá aquí con su código, hora y estado de envío.</p>`}
+    ${rs.length?`<div class="tablewrap"><table><thead><tr><th>Código</th><th>Versión</th><th>Apodo</th><th>Edad</th><th>Grupo</th><th>Hora</th><th>Duración</th><th>Estado</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<p class="hint">Todavía no hay cuestionarios en esta tablet.</p>`}
     ${rech.length?`<div class="proto"><span>⚠</span><span>${rech.map(r=>`<b>${esc(r.codigo)}:</b> ${esc(MOTIVOS[String(r.estado).split(":")[1]]||"rechazado")}`).join("<br>")}<br>Revisa el código en la lista y captúralo a mano con las filas de abajo.</span></div>`:""}
     <div class="row"><button class="btn btn-primary" id="sync" ${pend?"":"disabled"}>Reintentar envío (${pend})</button></div>
   </div>
   <div class="card">
     <h2>Respaldo: filas para Captura</h2>
-    <p class="hint">Solo los que no se han enviado. Si algo no llega a la base, cópialos y pégalos en la pestaña Captura, columna A de la primera fila vacía. Salen en el mismo orden (código, versión, fecha, grupo, colonia, edad, apodo, P1…P40).</p>
     <textarea id="tsv" readonly>${esc(tsv)}</textarea>
     <div class="row"><button class="btn btn-ghost" id="copy" ${tsv?"":"disabled"}>Copiar filas</button><button class="btn btn-ghost" id="csv" ${rs.length?"":"disabled"}>Descargar CSV (todos)</button><span class="hint" id="copied" hidden>Copiado.</span></div>
   </div>
   <div class="card">
     <h2>Limpiar esta tablet</h2>
-    <p class="hint">Borra de la tablet solo lo que ya está en la base.</p>
     <div class="row" id="delrow"><button class="btn btn-warn" id="del" ${env?"":"disabled"}>Borrar ${env} enviado${env===1?"":"s"}</button></div>
   </div>
   <button class="btn btn-ghost btn-block" id="home">Volver al inicio</button></div>`;
@@ -505,7 +515,8 @@ function bind(){
   }
   if(S.screen==="pregunta"){
     document.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{S.r[S.i]=b.dataset.val;
-      document.querySelectorAll(".opt").forEach(x=>x.setAttribute("aria-checked",x===b));$("go").disabled=false});
+      document.querySelectorAll(".opt").forEach(x=>{x.setAttribute("aria-checked",x===b);x.classList.remove("pop")});
+      void b.offsetWidth;b.classList.add("pop");$("go").disabled=false});
     $("back").onclick=()=>{if(S.i>0){S.i--;S.qStart=Date.now();render()}};
     $("go").onclick=()=>{S.t[S.i]=Math.round((Date.now()-S.qStart)/100)/10;
       if(S.i<QS[S.v].length-1){S.i++;S.qStart=Date.now();render();}
