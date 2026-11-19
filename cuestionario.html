@@ -253,7 +253,7 @@ const QS={H:buildQs("H"),M:buildQs("M")};
 const CONFIG={
   SHEETS_URL:'https://script.google.com/macros/s/AKfycbytPsOhd2pdFJFB4F7wHHS2m6QkrNrn2CC3adsnkTbsl3JGf3uINRx5xwbGXXMLcvBV/exec',
   SHEETS_TOKEN:'cj-2026-x7f2m9',
-  APP_VERSION:'C1.0'
+  APP_VERSION:'C1.1'
 };
 
 /* ============ ALMACENAMIENTO EN LA TABLET + ENVÍO ============ */
@@ -308,8 +308,8 @@ async function validarCodigo(cod){
 let S={screen:"inicio"};
 const app=document.getElementById("app");
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const CODE_RE=/^CJ-\d{4}$/;
-function normCode(s){s=String(s||"").toUpperCase().replace(/\s+/g,"");if(s==="PRUEBA")return s;const m=s.match(/^(?:CJ-?)?(\d{1,4})$/);return m?"CJ-"+m[1].padStart(4,"0"):s}
+const CODE_RE=/^CJ-[1-9A-HJ-NP-Z]{4}$/;
+function normCode(s){s=String(s||"").toUpperCase().replace(/\s+/g,"");if(s==="PRUEBA")return s;const m=s.match(/^(?:CJ-?)?([0-9A-Z]{4})$/);return m?"CJ-"+m[1]:s}
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 const hhmm=d=>String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+String(d.getSeconds()).padStart(2,"0");
 
@@ -369,8 +369,8 @@ function codigo(){
   return shell(1,false,true,`<h1 class="h1b">Código del participante</h1>
   <div class="fld" style="gap:10px">
     <label for="cod">Código</label>
-    <input class="inp code" type="text" id="cod" placeholder="CJ-0000" autocomplete="off" value="${esc(S.cod||"")}">
-    <p class="hint" style="font-size:15px">Formato CJ-0000. Puedes escribir solo el número (por ejemplo 12) y se completa solo.</p>
+    <input class="inp code" type="text" id="cod" placeholder="CJ-K7M4" autocomplete="off" value="${esc(S.cod||"")}">
+    <p class="hint" style="font-size:15px">Formato CJ- y 4 letras o números, como viene en la lista (por ejemplo CJ-K7M4). Puedes escribir solo los 4 caracteres y se completa solo.</p>
   </div>
   <p class="err" id="e2" hidden></p>
   <p class="hint" id="chk" hidden>Revisando el código…</p>
@@ -478,7 +478,7 @@ function bind(){
     inp.oninput=()=>{S.cod=inp.value;$("e2").hidden=true};
     $("back").onclick=()=>{S={screen:"inicio"};render()};
     $("go").onclick=async()=>{const c=normCode(inp.value);inp.value=c;
-      if(c!=="PRUEBA"&&!CODE_RE.test(c))return err("Ese código no tiene el formato CJ-0000. Revísalo en la lista.");
+      if(c!=="PRUEBA"&&!CODE_RE.test(c))return err("Ese código no tiene el formato CJ-XXXX. Revísalo en la lista.");
       if(c!=="PRUEBA"&&mem.registros.some(r=>r.codigo===c&&!String(r.estado).startsWith("rechazado")))return err("Ese código ya se usó en esta tablet. Revisa la lista de asistencia.");
       $("go").disabled=true;$("chk").hidden=false;
       const v=await validarCodigo(c);
