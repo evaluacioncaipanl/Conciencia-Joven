@@ -12,12 +12,18 @@
   --riesgo:#e0457b; --riesgo-bg:#fde3ec; --prot:#3d9a4f; --prot-bg:#e2f3e4; --rut:#3b6fd1; --rut-bg:#e3ebfb;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+/* (A) Desactiva "deslizar hacia abajo para recargar" de Chrome Android */
+html,body{overscroll-behavior:none;overscroll-behavior-y:none}
 html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tinta);background:var(--fondo)}
 button{font:inherit;cursor:pointer;border:0}
 .pantalla{position:fixed;inset:0;display:none}
 .pantalla.activa{display:flex}
 
 /* Inicio */
+#acceso{flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:18px;background:var(--fondo)}
+#acceso .franja{position:absolute;top:0;left:0;right:0;background:var(--naranja);color:#fff;padding:14px 20px;font-weight:700;display:flex;justify-content:space-between}
+#acceso h1{margin:0;font-size:clamp(26px,5vw,40px);text-align:center}
+#acceso p.sub{margin:0;color:var(--gris);text-align:center;font-size:18px}
 #inicio{flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:18px;background:var(--fondo)}
 #inicio .franja{position:absolute;top:0;left:0;right:0;background:var(--naranja);color:#fff;padding:14px 20px;font-weight:700;display:flex;justify-content:space-between}
 #inicio h1{margin:0;font-size:clamp(28px,5vw,44px);text-align:center}
@@ -100,8 +106,20 @@ button{font:inherit;cursor:pointer;border:0}
 </head>
 <body>
 
+<!-- ACCESO (PIN del facilitador) -->
+<section id="acceso" class="pantalla">
+  <div class="franja"><span>Sesión 3 · Mapeo</span><span>CAIPA</span></div>
+  <h1>Acceso del facilitador</h1>
+  <p class="sub">Escribe el PIN para usar esta tablet</p>
+  <div class="campo">
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN" style="text-align:center;letter-spacing:.4em">
+  </div>
+  <div class="aviso" id="avisoPin"></div>
+  <button class="btn" id="btEntrar">Entrar</button>
+</section>
+
 <!-- INICIO -->
-<section id="inicio" class="pantalla activa">
+<section id="inicio" class="pantalla">
   <div class="franja"><span>Sesión 3 · Mapeo</span><span id="fechaHoy"></span></div>
   <h1>Mapa de mi colonia</h1>
   <p class="sub">Monte Kristal · Juárez, N.L.</p>
@@ -148,7 +166,10 @@ const CONFIG = {
   DECIMALES: 3,          // redondeo de coordenadas al guardar (~100 m)
   TOPE_POR_ESTAMPA: 3,   // máximo de la misma estampa por turno
   TOLERANCIA_M: 150,     // prueba: toque a ≤150 m de su escuela cuenta como acierto
-  STORE: 'cj_mapeo_proto_v1'
+  STORE: 'cj_mapeo_proto_v1',
+  // PIN del facilitador guardado solo como huella (FNV-1a de "cj-mapeo:"+PIN); el PIN lo tiene Max.
+  // Es una barrera contra visitas casuales, no seguridad real: el código de una página pública se puede leer.
+  PIN_HASH: 'fd019b04'
 };
 
 // Límite de la colonia (OSM way 442152656, © colaboradores de OpenStreetMap)
@@ -172,16 +193,18 @@ const REFERENCIAS = [
   {nom:'Parque Santa Esmeralda',ico:'🌳',lat:25.616125,lng:-100.13067}
 ];
 
-// Estampas PROVISIONALES (íconos emoji temporales; Max define la lista e íconos finales)
+// Estampas acordadas con Max (20 nov 2026). Íconos emoji temporales hasta que Max genere los finales.
+// "Mi escuela" va en Mi rutina (neutral): el chico marca SU escuela y, si no le gusta o no es segura, pone estampas de riesgo junto.
 const ESTAMPAS = [
   {g:'riesgo', t:'Riesgo', items:[
     ['ilum','💡','Poca iluminación'],['rina','⚡','Conflictos o riñas'],['terreno','🏚️','Terreno abandonado'],
-    ['consumo','🍺','Consumo de alcohol o drogas'],['calle','🛣️','Calle poco transitada']]},
+    ['consumo','🍺','Consumo de alcohol o drogas'],['calle','🛣️','Calle sola']]},
   {g:'prot', t:'Protección', items:[
-    ['iglesia','⛪','Iglesia'],['escuela','✏️','Escuela'],['salud','🏥','Centro de salud'],['comunitario','⭐','Centro comunitario'],
+    ['iglesia','⛪','Iglesia'],['salud','🏥','Centro de salud'],['comunitario','⭐','Centro comunitario'],
     ['ayuda','❤️','Lugar donde me ayudan'],['parque','🌳','Parque'],['cancha','⚽','Cancha o deporte']]},
   {g:'rut', t:'Mi rutina', items:[
-    ['junto','🧑‍🤝‍🧑','Donde me junto'],['parada','🚌','Parada de camión o metro'],['trabajo','💼','Trabajo']]}
+    ['mi_escuela','✏️','Mi escuela'],['junto','🧑‍🤝‍🧑','Donde me junto'],['tiendita','🏪','Tiendita'],
+    ['transporte','🚌','Transporte público'],['trabajo','💼','Trabajo']]}
 ];
 const FRANJAS = [['manana','🌅','Mañana'],['tarde','☀️','Tarde'],['noche','🌙','Noche'],['finde','🎉','Fin de semana']];
 const EST = {}; ESTAMPAS.forEach(gr=>gr.items.forEach(([k,i,n])=>EST[k]={k,ico:i,nom:n,g:gr.g}));
@@ -261,12 +284,16 @@ function ver(id){ document.querySelectorAll('.pantalla').forEach(s=>s.classList.
 $('fechaHoy').textContent = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
 try{ grupo = sessionStorage.getItem('cj_mapeo_grupo')||''; $('grupo').value = grupo; }catch(e){}
 
-function iniciar(m){
+// (B) Turno activo: se guarda para retomarlo si la página se recarga a media sesión
+const ACTIVO = 'cj_mapeo_activo';
+function marcarActivo(v){ try{ v? localStorage.setItem(ACTIVO,JSON.stringify(v)) : localStorage.removeItem(ACTIVO); }catch(e){} }
+function iniciar(m, turnoPrevio){
   grupo = $('grupo').value.trim().toUpperCase();
   if(!grupo){ $('avisoInicio').textContent='Escribe el grupo'; $('grupo').focus(); return; }
   $('avisoInicio').textContent='';
   try{ sessionStorage.setItem('cj_mapeo_grupo',grupo); }catch(e){}
-  modo = m; turno = uid();
+  modo = m; turno = turnoPrevio || uid();
+  marcarActivo({modo:m, turno, grupo});
   ver('vista');
   $('barraMapeo').style.display = m==='mapeo'?'flex':'none';
   $('barraPrueba').style.display = m==='prueba'?'flex':'none';
@@ -276,11 +303,42 @@ function iniciar(m){
   mostrarRef(m!=='prueba');
   setTimeout(encuadrar,30);
   if(m==='prueba'){ $('consigna').innerHTML='Elige tu escuela<small>&nbsp;</small>'; $('reloj').textContent='0 s'; setTimeout(empezarPrueba,250); }
-  else bitacora({});
+  else {
+    bitacora({});
+    // Al retomar, se vuelven a dibujar las estampas que ya tenía este turno
+    if(turnoPrevio) leer().marcas.filter(x=>x.turno_id===turno)
+      .forEach(x=> capaTurno.add(pin({lat:x.lat,lng:x.lng},EST[x.estampa]||{g:x.tipo,ico:'•'},false))._mid = x.id);
+  }
   contar();
 }
 $('btEmpezar').onclick = ()=>iniciar('mapeo');
 $('btPrueba').onclick = ()=>iniciar('prueba');
+function retomar(){
+  let a=null; try{ a=JSON.parse(localStorage.getItem(ACTIVO)); }catch(e){}
+  if(!a || !a.grupo) return;
+  $('grupo').value = a.grupo;
+  if(a.modo==='mapeo'){ iniciar('mapeo', a.turno); toast('Se retomó el turno: tus estampas siguen aquí'); }
+  else if(a.modo==='prueba'){ iniciar('prueba'); toast('La prueba se reinició desde el principio'); }
+}
+/* ---------- acceso con PIN ----------
+   Se pide una vez por tablet; queda desbloqueada hasta "Cerrar sesión" en el panel.
+   Si cambia el PIN, las tablets desbloqueadas con el anterior lo vuelven a pedir. */
+const ACCESO = 'cj_mapeo_acceso';
+function huella(s){ let h=0x811c9dc5; for(const b of new TextEncoder().encode(s)){ h^=b; h=Math.imul(h,0x01000193)>>>0; } return h.toString(16).padStart(8,'0'); }
+function desbloqueada(){ try{ return localStorage.getItem(ACCESO)===CONFIG.PIN_HASH; }catch(e){ return false; } }
+function entrar(){
+  if(huella('cj-mapeo:'+$('pin').value.trim())!==CONFIG.PIN_HASH){
+    $('avisoPin').textContent='PIN incorrecto'; $('pin').value=''; $('pin').focus(); return;
+  }
+  try{ localStorage.setItem(ACCESO,CONFIG.PIN_HASH); }catch(e){}
+  $('pin').value=''; $('avisoPin').textContent=''; ver('inicio'); retomar();
+}
+$('btEntrar').onclick = entrar;
+$('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') entrar(); });
+if(desbloqueada()){ ver('inicio'); retomar(); } else ver('acceso');
+
+// (C) Aviso del navegador si alguien intenta recargar o salir a media sesión
+window.addEventListener('beforeunload', e=>{ if(modo){ e.preventDefault(); e.returnValue=''; } });
 
 /* ---------- toque en el mapa ---------- */
 map.on('click', e=>{
@@ -380,6 +438,7 @@ $('btTerminar').onclick = ()=>{
   const n = leer().marcas.filter(m=>m.turno_id===turno).length;
   if(n===0 && !confirm('No pusieron ninguna estampa. ¿Terminar de todos modos?')) return;
   bitacora({fin:new Date().toISOString(), estampas:n});
+  marcarActivo(null);
   modo=null; ver('inicio'); $('avisoInicio').textContent = n?`¡Gracias! Se guardaron ${n} estampas.`:'';
   $('avisoInicio').style.color = 'var(--prot)';
 };
@@ -439,7 +498,7 @@ function terminarPrueba(){
   const d = leer();
   d.pruebas.push(Object.assign({ id:uid()+uid(), grupo, colonia:CONFIG.COLONIA, fecha:new Date().toISOString() }, prueba.res));
   guardar(d);
-  prueba=null; modo=null; capaTurno.clearLayers();
+  prueba=null; modo=null; capaTurno.clearLayers(); marcarActivo(null);
   toast('¡Gracias! Pásale la tablet al siguiente');
   setTimeout(()=>{ ver('inicio'); $('avisoInicio').textContent=''; },1400);
 }
@@ -449,16 +508,22 @@ function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('ver'
 
 /* ---------- panel del facilitador (5 toques arriba a la derecha) ---------- */
 let toques=0, tt=null;
-$('esquina').addEventListener('click',()=>{ toques++; clearTimeout(tt); tt=setTimeout(()=>toques=0,1500); if(toques>=5){ toques=0; abrirPanel(); } });
+$('esquina').addEventListener('click',()=>{ toques++; clearTimeout(tt); tt=setTimeout(()=>toques=0,1500); if(toques>=5){ toques=0; if(desbloqueada()) abrirPanel(); } });
 function csv(filas){
   if(!filas.length) return '';
   const cols = Object.keys(filas[0]);
   const esc = v => { v = v==null?'':String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
   return '﻿'+cols.join(',')+'\n'+filas.map(f=>cols.map(c=>esc(f[c])).join(',')).join('\n');
 }
-function bajar(nombre,txt){
+// GeoJSON (WGS84) para arrastrar directo a QGIS; las propiedades conservan lat y lng
+function geojson(filas){
+  if(!filas.length) return '';
+  return JSON.stringify({type:'FeatureCollection', features: filas.map(f=>({type:'Feature',
+    geometry:{type:'Point',coordinates:[f.lng,f.lat]}, properties:f}))}, null, 1);
+}
+function bajar(nombre,txt,tipo){
   if(!txt){ toast('No hay datos para descargar'); return; }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:(tipo||'text/csv')+';charset=utf-8'}));
   a.download=nombre; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
 }
 function abrirPanel(){
@@ -483,9 +548,11 @@ function abrirPanel(){
   <div class="fila">
     <button class="btn sec" style="width:auto" id="pCsv">Descargar estampas (CSV)</button>
     <button class="btn sec" style="width:auto" id="pCsv2">Descargar prueba (CSV)</button>
+    <button class="btn sec" style="width:auto" id="pGeo">Descargar estampas (GeoJSON · QGIS)</button>
     <button class="btn sec" style="width:auto" id="pCsv3">Descargar turnos (CSV)</button>
     <button class="btn sec" style="width:auto" id="pVer">Ver todas en el mapa</button>
     <button class="btn sec" style="width:auto;color:#b3261e;border-color:#b3261e" id="pBorrar">Borrar datos</button>
+    <button class="btn sec" style="width:auto" id="pSalir">Cerrar sesión (pedir PIN)</button>
     <button class="btn" style="width:auto" id="pCerrar">Cerrar</button>
   </div>
   <h3>Estampas por tipo</h3>
@@ -494,12 +561,14 @@ function abrirPanel(){
   <table><tr><th>Grupo</th><th>Escuela en lista</th><th>Atinó escuela</th><th>Seg.</th><th>Atinó lugar</th><th>Seg.</th></tr>${d.pruebas.map(p=>`<tr><td>${p.grupo}</td><td>${p.escuela_en_lista}</td><td>${p.atino_escuela}</td><td>${p.seg_escuela}</td><td>${p.atino_lugar}</td><td>${p.seg_lugar}</td></tr>`).join('')||'<tr><td colspan=6>Sin datos</td></tr>'}</table>`;
   P.classList.add('ver');
   $('pCerrar').onclick = ()=>P.classList.remove('ver');
+  $('pSalir').onclick = ()=>{ try{ localStorage.removeItem(ACCESO); }catch(e){} modo=null; marcarActivo(null); P.classList.remove('ver'); ver('acceso'); };
   $('pCsv').onclick = ()=>bajar(`mapeo_estampas_${CONFIG.COLONIA.replace(/\s/g,'_')}.csv`, csv(d.marcas));
   $('pCsv2').onclick = ()=>bajar(`mapeo_prueba_ubicacion_${CONFIG.COLONIA.replace(/\s/g,'_')}.csv`, csv(d.pruebas));
   $('pCsv3').onclick = ()=>bajar(`mapeo_turnos_${CONFIG.COLONIA.replace(/\s/g,'_')}.csv`, csv(d.turnos));
+  $('pGeo').onclick = ()=>bajar(`mapeo_estampas_${CONFIG.COLONIA.replace(/\s/g,'_')}.geojson`, geojson(d.marcas), 'application/geo+json');
   $('pBorrar').onclick = ()=>{ if(confirm('¿Borrar todas las estampas, pruebas y turnos de esta tablet? No se puede deshacer.')){ guardar({marcas:[],pruebas:[],turnos:[]}); abrirPanel(); } };
   $('pVer').onclick = ()=>{
-    P.classList.remove('ver'); modo=null; ver('vista');
+    P.classList.remove('ver'); modo=null; marcarActivo(null); ver('vista');
     $('barraMapeo').style.display='none'; $('barraPrueba').style.display='none';
     if(capaTurno) capaTurno.remove(); capaTurno=new Capa(); mostrarRef(true);
     leer().marcas.forEach(m=>capaTurno.add(pin({lat:m.lat,lng:m.lng},EST[m.estampa]||{g:m.tipo,ico:'•'},false)));
