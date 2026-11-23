@@ -1,5 +1,5 @@
-// Mapeo · Sesión 3 · M1.2. Guarda los HTML del mapeo para abrirlos sin internet.
-const CACHE = 'cj-mapeo-M1.2';
+// Mapeo · Sesión 3 · M1.3. Guarda los HTML del mapeo para abrirlos sin internet.
+const CACHE = 'cj-mapeo-M1.3';
 const ARCHIVOS = ['./', './juarez.html'];
 self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).catch(() => {})); });
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('cj-mapeo-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
